@@ -6,9 +6,10 @@ namespace ChatGPTCLI
 		private List<Message> messages = new List<Message>();
 		private OpenAIClient client;
 		private string Model { get; init; }
+        readonly string[] exitCommands = new string[] { "exit", "q", "quit", "leave" };
 
 
-		public Application(string apiKey, string model)
+        public Application(string apiKey, string model)
 		{
 			client = new OpenAIClient(apiKey);
 			Model = model;
@@ -16,17 +17,23 @@ namespace ChatGPTCLI
 
 		private bool tryGetUserPrompt(out string prompt, bool promptUser = false)
 		{
+
 			if (promptUser)
 			{
-				Console.WriteLine("How can i help you today?");
+
+				Message gptMessage = new Message(Role.Assistant, "How can I assist you today?");
+				printAIMessage(gptMessage.Content);
+				messages.Add(gptMessage);
 			}
+
+			Console.Write("User: ");
             prompt = Console.ReadLine() ?? "";
 			return isPromptMessage(prompt);
         }
 
 		public Application AddSystemInstruction(string instruction)
 		{
-			this.messages.Add(new Message("system", instruction));
+			this.messages.Add(new Message(Role.System, instruction));
 			return this;
 		}
 
@@ -54,7 +61,7 @@ namespace ChatGPTCLI
                     }
 
                     this.messages.Add(response);
-                    Console.WriteLine(response.Content);
+					printAIMessage(response.Content);
 
 					if (!tryGetUserPrompt(out prompt))
 					{
@@ -70,15 +77,21 @@ namespace ChatGPTCLI
 			}
 		}
 
-		public void addUserPrompt(string prompt)
+        private void printAIMessage(string content)
+        {
+			Console.WriteLine("");
+			Console.WriteLine($"ChatGPT: {content}");
+			Console.WriteLine("");
+        }
+
+        public void addUserPrompt(string prompt)
 		{
-			messages.Add(new Message("user", prompt));
+			messages.Add(new Message(Role.User, prompt));
 		}
 
 		private bool isPromptMessage(string? prompt)
 		{
-			return !string.IsNullOrEmpty(prompt) && prompt.ToLower() != "exit";
-
+			return !string.IsNullOrEmpty(prompt) && !isExitCommand(prompt);
         }
 
 		private void endProgram(int status = 0)
@@ -90,6 +103,11 @@ namespace ChatGPTCLI
 		private OpenAIRequest getRequest()
 		{
 			return new OpenAIRequest(Model, messages);
+		}
+
+		private bool isExitCommand(string command)
+		{
+			return exitCommands.Any(c => c == command.ToLower().Trim());
 		}
 	}
 }

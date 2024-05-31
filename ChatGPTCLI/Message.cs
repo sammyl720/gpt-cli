@@ -13,9 +13,9 @@ namespace ChatGPTCLI
 
         public Message() { }
 
-        public Message(string role, string content)
+        public Message(Role role, string content)
         {
-            Role = role;
+            Role = role.ToString().ToLower();
             Content = content;
         }
     }
